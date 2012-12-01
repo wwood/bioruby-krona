@@ -30,11 +30,10 @@ require 'rspec/core/rake_task'
 RSpec::Core::RakeTask.new(:spec) do |spec|
   spec.pattern = FileList['spec/**/*_spec.rb']
 end
-
-RSpec::Core::RakeTask.new(:rcov) do |spec|
-  spec.pattern = 'spec/**/*_spec.rb'
-  spec.rcov = true
+RSpec::Core::RakeTask.new(:test_without_wrapper) do |spec|
+  spec.pattern = FileList['spec/**/*_spec.rb'].reject{|f| f=='spec/bio-krona_wrapper_spec.rb'}
 end
+
 
 require 'cucumber/rake/task'
 Cucumber::Rake::Task.new(:features)
