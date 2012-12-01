@@ -9,7 +9,7 @@ module Bio
     # ** :krona_path: path to the ktImportText script in the krona directory (default 'ktImportText' i.e. assuming it is already in the PATH)
     def self.html(count_hash, options={})
       raise unless count_hash.kind_of?(Hash)
-      options[:krona_path] ||= %(bash ktImportText)
+      options[:krona_path] ||= %(ktImportText)
       
       Tempfile.open('krona') do |tempfile|
         count_hash.each do |array, count|
