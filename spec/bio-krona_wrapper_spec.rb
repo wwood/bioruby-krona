@@ -18,6 +18,7 @@ describe "BioKronaWrapper" do
  <body>
   <img id="hiddenImage" src="http://krona.sourceforge.net/img/hidden.png" style="display:none"/>
   <img id="loadingImage" src="http://krona.sourceforge.net/img/loading.gif" style="display:none"/>
+  <img id="logo" src="http://krona.sourceforge.net/img/logo.png" style="display:none"/>
   <noscript>Javascript must be enabled to view this page.</noscript>
   <div style="display:none">
   <krona collapse="true" key="true">
@@ -48,14 +49,23 @@ EOF
     end
     expected = make_comparable.call(expected)
     html = make_comparable.call(html)
-    
+
     html.should eq(expected)
   end
-  
+
   # it "should give back the html split up for re-use" do
     # h = Bio::Krona.reusable_html_chunks({
       # ['Sponge','Amphimedon']=>3,
       # ['Sponge','Calciums']=>4,
     # })
   # end
+
+  it 'should use a specified URL for the krona assets when set to' do
+    html = Bio::Krona.html({
+      ['Sponge','Amphimedon']=>3,
+      ['Sponge','Calciums']=>4,
+    }, :resources_url => 'http://dummy.com')
+
+    html.should match('script src="http://dummy.com')
+  end
 end

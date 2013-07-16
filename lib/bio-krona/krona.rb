@@ -7,41 +7,46 @@ module Bio
     # * count_hash: hash of Array => Numeric, where the array is a list of descriptors (e.g. [Eukaryota, Metazoa, Chordata]), and the Numeric is a count for the number of observations of that description
     # * options:
     # ** :krona_path: path to the ktImportText script in the krona directory (default 'ktImportText' i.e. assuming it is already in the PATH)
+    # ** :resources_url: URL of krona resources (i.e. the -u option of ktImportText)
     def self.html(count_hash, options={})
       raise unless count_hash.kind_of?(Hash)
       options[:krona_path] ||= %(ktImportText)
-      
+
       Tempfile.open('krona') do |tempfile|
         count_hash.each do |array, count|
           raise unless array.kind_of?(Array)
           raise unless count.kind_of?(Numeric)
-  
+
           tempfile.puts [
             count,
             array
           ].flatten.join("\t")
         end
         tempfile.close
-        
+
         Tempfile.open('krona_out') do |output|
           output.close
-          
+
           command = [
             options[:krona_path],
             '-o',
             output.path,
             tempfile.path,
           ].flatten
+          if options[:resources_url]
+            command.push '-u'
+            command.push options[:resources_url]
+          end
           Bio::Command.call_command_open3(command) do |stdin, stdout, stderr|
             err = stderr.read
             raise err unless err==''
           end
-          
+
           return File.open(output.path).read
         end
       end
     end
-    
+
     # Take a count_hash (hash of Array => Numeric), and collapse the array down to some maximum number of levels. In krona, the collapsed output would now have less (max_level) rings.
     #
     # Returns the collapsed count_hash
@@ -51,7 +56,7 @@ module Bio
       count_hash.each do |array, count|
         raise unless array.kind_of?(Array)
         raise unless count.kind_of?(Numeric)
-          
+
         new_count_hash[array[0...max_level]] ||= 0
         new_count_hash[array[0...max_level]] += count
       end
