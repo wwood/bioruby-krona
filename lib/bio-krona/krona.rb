@@ -8,12 +8,14 @@ module Bio
     # * options:
     # ** :krona_path: path to the ktImportText script in the krona directory (default 'ktImportText' i.e. assuming it is already in the PATH)
     # ** :resources_url: URL of krona resources (i.e. the -u option of ktImportText)
+    # ** :multiple_samples: count_hash is a hash of sample names to hash of Array => Numeric, when multiple samples are to be included [default false]
     def self.html(count_hash, options={})
       raise unless count_hash.kind_of?(Hash)
       options[:krona_path] ||= %(ktImportText)
 
-      Tempfile.open('krona') do |tempfile|
-        count_hash.each do |array, count|
+      get_tempfile_from_count_hash = lambda do |ch|
+        tempfile = Tempfile.new('krona')
+        ch.each do |array, count|
           raise unless array.kind_of?(Array)
           raise unless count.kind_of?(Numeric)
 
@@ -23,27 +25,49 @@ module Bio
           ].flatten.join("\t")
         end
         tempfile.close
+        tempfile
+      end
 
-        Tempfile.open('krona_out') do |output|
-          output.close
+      input_tempfiles = []
+      input_names = []
+      if options[:multiple_samples]
+        input_names = count_hash.keys
+        input_tempfiles = count_hash.values.collect{|ch| get_tempfile_from_count_hash.call(ch)}
+      else
+        input_names = [nil]
+        input_tempfiles = [get_tempfile_from_count_hash.call(count_hash)]
+      end
 
-          command = [
-            options[:krona_path],
-            '-o',
-            output.path,
-            tempfile.path,
-          ].flatten
-          if options[:resources_url]
-            command.push '-u'
-            command.push options[:resources_url]
-          end
-          Bio::Command.call_command_open3(command) do |stdin, stdout, stderr|
-            err = stderr.read
-            raise err unless err==''
-          end
-
-          return File.open(output.path).read
+      pairs = []
+      input_names.each_with_index do |name, i|
+        tmpname = input_tempfiles[i].path
+        if name.nil?
+          pairs.push tmpname
+        else
+          pairs.push "#{tmpname},#{name}"
         end
+      end
+
+      Tempfile.open('krona_out') do |output|
+        output.close
+
+        command = [
+          options[:krona_path],
+          '-o',
+          output.path,
+          pairs,
+          ].flatten
+        if options[:resources_url]
+          command.push '-u'
+          command.push options[:resources_url]
+        end
+        Bio::Command.call_command_open3(command) do |stdin, stdout, stderr|
+          err = stderr.read
+          raise err unless err==''
+        end
+
+        input_tempfiles.each{|t| t.close}
+        return File.open(output.path).read
       end
     end
 
